@@ -1,189 +1,147 @@
-/*
-JSON has 3 items
- names
-     Array of strings with "id" of every person
- metadata
-     all the individuals (each has a unique "id")
-     "id": int
-     "ethnicity": string
-     "gender": string
-     "age": int
-     "location": str
-     "bbtype": str
-     "wfreq": float
- samples
-     data for each individual - All 3 are arrays have the same length
-     "otu_ids": Array of OTU id ints
-     "sample_values": Array of OTU values (count of OTU???)
-     "otu_labels": Array of OTU string labels
-*/
+// Initialize the page with a default plot.
 
-const url = "https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json";
-// values will be set after JSON is loaded
-let sampleNames;
-let samplesMetadata;
-let samplesSamples;
+function charts(selectedPatientID) {
+    d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json").then((data) => {
+      var plottingData = data.samples;
+      var subject = plottingData.filter(
+        (sampleobject) => sampleobject.id == selectedPatientID
+      )[0];
+  
+      console.log(subject);
+      var ids = subject.otu_ids;
+      var labels = subject.otu_labels;
+      var values = subject.sample_values;
 
-function init() {
-    d3.json(url).then(function(data) {
-        sampleNames = data.names;
-        samplesMetadata = data.metadata;
-        samplesSamples = data.samples;
+  /////////////////////////////////////////////////////
+      // Horizontal Bar Char
 
-        // set values into dropDown
-        let dropDown = d3.select("#selDataset");
-        for (i =0; i < sampleNames.length; i++) {
-            dropDown.append("option")
-                    .text(sampleNames[i])
-                    .attr("value", sampleNames[i])
-        }
-
-        // initialSetup(949);  // three values, use for testing
-        initialSetup(940);  // many values (first in `names`)
-    });
-}
-
-function initialSetup(individual) {
-    // values are already sorted by `sample_values` in original json
-    // use == instead of === because value my be number or string type
-    let individualData = samplesSamples.filter(sample => (sample.id == individual.toString()))[0];
-    let individualMetadata = samplesMetadata.filter(meta => (meta.id == individual))[0];
-
-    // Individual Metadata
-    setMetadata(individual);
-
-    // Create Charts
-    let singleSampleIds = individualData.otu_ids;
-    let singleSampleValues = individualData.sample_values;
-    let singleSampleLabels = individualData.otu_labels;
-
-    let config = {displayModeBar: false,};  // hide the Plotly toolbar
-
-    // Bar Chart
-    let barTrace = [{
-        x: singleSampleValues.slice(0, 10).reverse(),
-        y: singleSampleIds.slice(0, 10).map(ids => `OTU ${ids}`).reverse(),
-        text: singleSampleLabels.slice(0, 10).reverse(),
-        name: "Taxa",
+      var trace1 = {
+        x: values.slice(0, 10).reverse(),
+        y: ids
+          .slice(0, 10)
+          .map((otuID) => `OTU ${otuID}`)
+          .reverse(),
+        text: labels.slice(0, 10).reverse(),
         type: "bar",
         orientation: "h",
-    }];
-    let barLayout = {
-        title: "Top 10 Samples",
-        margin: {t: 30, b: 40},
-        xaxis: {title: "Sample Values",
-                fixedrange: true},
-        yaxis: {title: "Samples",
-                fixedrange: true},
-    };
-    Plotly.newPlot("bar", barTrace, barLayout, config)
+      };
+  
+      var data = [trace1];
+  
+      var layout = {
+        title: "Top 10 Cultures Found",
+        xaxis: { autorange: true },
+        yaxis: { autorange: true },
+        margin: { t: 70, l: 100 },
+        height: 380,
+      };
+  
+      Plotly.newPlot("bar", data, layout);
 
-    // Bubble Chart
-    let bubbleTrace = [{
-        x: singleSampleIds,
-        y: singleSampleValues,
-        text: singleSampleLabels,
-        mode: 'markers',
+  ////////////////////////////////////////////////////////
+      // Bubble Chart
+
+      var trace1 = {
+        x: ids,
+        y: values,
+        text: labels,
+        mode: "markers",
         marker: {
-            size: singleSampleValues,
-            color: singleSampleIds,
-            colorscale: "Bluered",
+          color: ids,
+          size: values,
+          colorscale: "Electric",
         },
-    }];
-    let bubbleLayout = {
-        title: "Values per OTU ID",
-        margin: {t: 30, b: 40, l: 50, r: 10, pad: 6},
-        xaxis: {title: "OTU ID"},
-        yaxis: {title: "Sample Values"},
-    };
-    Plotly.newPlot("bubble", bubbleTrace, bubbleLayout, config);
+      };
+  
+      var data = [trace1];
+  
+      var layout = {
+        margin: { t: 0 },
+        xaxis: { title: "OTU ID" },
+        hovermode: "closest",
+        width: window.width,
+      };
+  
+      Plotly.newPlot("bubble", data, layout);
+    });
+  }
+  //////////////////////////////////////////////////////////
+  // Demographic Info
 
-    // Gauge Chart
-    let gaugeTrace = [{
-        value: individualMetadata.wfreq,
-        type: "indicator",
-        mode: "gauge+number",
-        gauge: {
-            axis: {dtick: 1,
-                   range: [null, 10],
-                   tickcolor: "black",
-                   ticks: "inside",},
-            bar: {color: "#ee8844",
-                  thickness: 0.5}, // replace  or add needle?
-            bgcolor: "white",
-            borderwidth: 1,
-            bordercolor: "black",
+  function demo(selectedPatientID) {
+    d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json").then((data) => {
+      var MetaData = data.metadata;
+      var subject = MetaData.filter(
+        (sampleobject) => sampleobject.id == selectedPatientID
+      )[0];
+      var demographicInfoBox = d3.select("#sample-metadata");
+      demographicInfoBox.html("");
+      Object.entries(subject).forEach(([key, value]) => {
+        demographicInfoBox.append("h5").text(`${key}: ${value}`);
+      });
+
+      /////////////////////////////////////////////////////////
+      // Gauge (This is inside the Demographic function because it utilizes the metadata.)
+      
+      var guageData = [
+        {
+          domain: { x: [0, 5], y: [0, 1] },
+          value: subject.wfreq,
+          text: subject.wfreq,
+          type: "indicator",
+          mode: "gauge+number",
+          delta: { reference: 10 },
+          gauge: {
+            axis: { range: [null, 9] },
             steps: [
-                {range: [0, 1], color: "#ffffa8"},
-                {range: [1, 2], color: "#f1fa95"},
-                {range: [2, 3], color: "#e2f583"},
-                {range: [3, 4], color: "#d1f172"},
-                {range: [4, 5], color: "#beec61"},
-                {range: [5, 6], color: "#a9e851"},
-                {range: [6, 7], color: "#92e441"},
-                {range: [7, 8], color: "#76e031"},
-                {range: [8, 9], color: "#52db20"},
-                {range: [9, 10], color: "#00d70a"},
-                ],
+              { range: [0, 1], color: "rgb(248, 243, 236)" },
+              { range: [1, 2], color: "rgb(239, 234, 220)" },
+              { range: [2, 3], color: "rgb(230, 225, 205)" },
+              { range: [3, 4], color: "rgb(218, 217, 190)" },
+              { range: [4, 5], color: "rgb(204, 209, 176)" },
+              { range: [5, 6], color: "rgb(189, 202, 164)" },
+              { range: [6, 7], color: "rgb(172, 195, 153)" },
+              { range: [7, 8], color: "rgb(153, 188, 144)" },
+              { range: [8, 9], color: "rgb(132, 181, 137)" },
+            ],
+          },
         },
-    }];
-    let gaugeLayout = {
-        title: "<b>Belly Button Washing Frequency</b><br>Scrubs per Week",
-    };
-    Plotly.plot("gauge", gaugeTrace, gaugeLayout, config);
-};
+      ];
+  
+      var layout = {
+        title: "<b>Belly Button Washing Frequency</b> <br>Scrubs Per Week</br>",
+        width: 350,
+        height: 350,
+        margin: { t: 50, r: 25, l: 25, b: 25 },
+      };
+      Plotly.newPlot("gauge", guageData, layout);
+    });
+  }
+  ///////////////////////////////////////////////////
+  // Call the data into the inspector console. 
 
-function setMetadata(individual) {
-    let individualMetadata = samplesMetadata.filter(meta => (meta.id == individual))[0];
-    let metadataDiv = d3.select("#sample-metadata");
+  function init() {
+    d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json").then(function (data) {
+      console.log("samples.json:", data);
+      // Set up the DropDown:
+      let DropDown = d3.select(`#selDataset`);
+  
+      data.names.forEach((name) => {
+        DropDown.append(`option`).text(name).property(`value`, name);
+      });
 
-    // update the metadata by removing and re-adding <p> elements
-    metadataDiv.selectAll("p").remove();  // remove existing <p> elements to prepare for new ones
-    metadataDiv.selectAll("p")
-               .data(Object.entries(individualMetadata))  // bind Array of [key, value] pairs
-               .enter()
-               .append("p")
-               .text(d => `${d[0]}: ${d[1]}`);
-};
-
-function updateCharts(individual) {
-    // Filter original json data for new individual id
-    let individualData = samplesSamples.filter(sample => (sample.id == individual.toString()))[0];
-    let individualMetadata = samplesMetadata.filter(meta => (meta.id == individual))[0];
-
-    // update charts with restyle()
-    let singleSampleIds = individualData.otu_ids;
-    let singleSampleValues = individualData.sample_values;
-    let singleSampleLabels = individualData.otu_labels;
-
-    let barUpdate = {
-        x: [singleSampleValues.slice(0, 10).reverse()],
-        y: [singleSampleIds.slice(0, 10).map(ids => `OTU ${ids}`).reverse()],
-        text: [singleSampleLabels.slice(0, 10).reverse()],
-    };
-    console.log(barUpdate);
-    Plotly.restyle("bar", barUpdate);
-
-    let bubbleUpdate = {
-        x: [singleSampleIds],
-        y: [singleSampleValues],
-        text: [singleSampleLabels],
-       'marker.size': [singleSampleValues],
-       'marker.color': [singleSampleIds],
-    };
-    Plotly.restyle("bubble", bubbleUpdate);
-
-    let gaugeUpdate = {
-        value: individualMetadata.wfreq,
-    };
-    Plotly.restyle("gauge", gaugeUpdate);
-}
-
-function optionChanged(value) {
-    console.log("Value changed to:", value);
-    setMetadata(value);
-    updateCharts(value);
-};
-
-// load the charts for the first time
-init();
+      ////////////////////////////////////////////////////////
+      // Reset demographic info and visuals to first subject when page is refreshed.
+      const firstSample = data.names[0];
+      charts(firstSample);
+      demo(firstSample);
+    });
+  }
+  //////////////////////////////////////////////////
+  // Pull data for new subject into demo and visuals. 
+  function optionChanged(newSample) {
+    charts(newSample);
+    demo(newSample);
+  }
+  
+  init();
